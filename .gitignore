@@ -1,0 +1,27 @@
+# Virtual Environment
+etl_venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Data
+data/raw/*
+data/processed/*
+data/temp/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/temp/.gitkeep
