@@ -1,10 +1,10 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from .config import DB_CONFIG
+from .config import DB_CONFIG # Import de la configuration de la base de données 
 from src.utils.logger import setup_logger
 
-logger = setup_logger('database')
+logger = setup_logger('database') # Initialisation du logger 
 
 def get_connection_string():
     return f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
@@ -17,7 +17,7 @@ class DatabaseManager:
 
     def connect(self):
         try:
-            connection_string = get_connection_string()
+            connection_string = get_connection_string() # Récupération de la chaîne de connexion
             self.engine = create_engine(connection_string)
             self.session_maker = sessionmaker(bind=self.engine)
             logger.info("Connexion à la base de données établie avec succès")

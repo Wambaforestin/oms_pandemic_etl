@@ -3,9 +3,9 @@ import sys
 # Ajoutez le chemin du projet au PYTHONPATH
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.config.database import db_manager
-from src.models.models import Pays, Maladie  # Import direct depuis models.py
-from src.utils.logger import setup_logger
+from src.config.database import db_manager # Import de la configuration de la base de données   
+from src.models.models import Pays, Maladie  # Import des modèles
+from src.utils.logger import setup_logger # Import du logger pour la prise en charge des logs
 
 logger = setup_logger('test_setup')
 
