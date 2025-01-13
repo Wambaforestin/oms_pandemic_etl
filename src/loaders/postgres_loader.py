@@ -30,6 +30,7 @@ class PostgresLoader(BaseLoader):
         """Charge les données d'épidémie"""
         try:
             session = self.db_manager.get_session()
+            epidemies = {}
             for epidemie in epidemie_data:
                 existante = session.query(EpidemiePays).filter_by(
                     id_pays=epidemie['id_pays'],
@@ -44,8 +45,16 @@ class PostgresLoader(BaseLoader):
                         statut=epidemie['statut']
                     )
                     session.add(nouvelle_epidemie)
+                    session.flush()  # Pour obtenir l'id_epidemie
+                    key = f"{epidemie['id_pays']}_{epidemie['id_maladie']}"
+                    epidemies[key] = nouvelle_epidemie.id_epidemie
+                else:
+                    key = f"{epidemie['id_pays']}_{epidemie['id_maladie']}"
+                    epidemies[key] = existante.id_epidemie
+
             session.commit()
             self.logger.info(f"Données épidémie chargées avec succès")
+            return epidemies  # Retourne les IDs des épidémies
         except SQLAlchemyError as e:
             session.rollback()
             self.logger.error(f"Erreur lors du chargement des épidémies: {str(e)}")
@@ -90,13 +99,35 @@ class PostgresLoader(BaseLoader):
     def load(self, transformed_data):
         """Méthode principale de chargement"""
         try:
+            # Chargement des pays
             self.load_pays(transformed_data['pays'])
-            self.load_epidemie(transformed_data['epidemie'])
+            
+            # Chargement des épidémies et récupération des IDs
+            epidemies = {}
             for epidemie in transformed_data['epidemie']:
-                self.load_statistiques(
-                    transformed_data['statistiques'][epidemie['id_epidemie']], 
-                    epidemie['id_epidemie']
-                )
+                pays_id = epidemie['id_pays']
+                maladie_id = epidemie['id_maladie']
+                session = self.db_manager.get_session()
+                
+                existante = session.query(EpidemiePays).filter_by(
+                    id_pays=pays_id,
+                    id_maladie=maladie_id
+                ).first()
+                
+                if existante:
+                    # Si l'épidémie existe, utiliser son ID
+                    key = f"{'covid' if maladie_id == 1 else 'mpox'}_{epidemie['nom_pays']}"
+                    epidemies[key] = existante.id_epidemie
+                
+                session.close()
+            
+            # Chargement des statistiques avec les IDs corrects
+            for key, stats_list in transformed_data['statistiques'].items():
+                if key in epidemies:
+                    self.load_statistiques(stats_list, epidemies[key])
+                else:
+                    self.logger.warning(f"Pas d'ID d'épidémie trouvé pour la clé {key}")
+            
             return True
         except Exception as e:
             self.logger.error(f"Erreur lors du chargement: {str(e)}")
