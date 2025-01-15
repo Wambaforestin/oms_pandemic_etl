@@ -7,7 +7,22 @@ class DataAggregator(BaseTransformer):
 
     def aggregate_by_country(self, df, date_column, country_column, metrics):
         """Agrégation par pays"""
-        return df.groupby([date_column, country_column])[metrics].sum().reset_index()
+        # Identifier les colonnes non-métriques à conserver
+        non_metric_columns = []
+        if 'WHO Region' in df.columns:
+            non_metric_columns.append('WHO Region')
+        if 'iso_code' in df.columns:
+            non_metric_columns.append('iso_code')
+
+        # Grouper par date et pays, agréger les métriques
+        aggregated = df.groupby([date_column, country_column])[metrics].sum().reset_index()
+
+        # Ajouter les colonnes non-métriques (prendre la première valeur pour chaque pays)
+        if non_metric_columns:
+            additional_info = df.groupby(country_column)[non_metric_columns].first().reset_index()
+            aggregated = aggregated.merge(additional_info, on=country_column)
+
+        return aggregated
 
     def calculate_rolling_averages(self, df, date_column, metrics, window=7):
         """Calcul des moyennes mobiles"""
@@ -19,6 +34,9 @@ class DataAggregator(BaseTransformer):
         """Agrégation principale des données"""
         try:
             self.logger.info("Début de l'agrégation des données")
+            
+            # Afficher les colonnes disponibles pour le débogage (utile pour les tests)
+            self.logger.info(f"Colonnes disponibles : {df.columns.tolist()}")
             
             # Agrégation par pays
             if config.get('aggregate_by_country', False):

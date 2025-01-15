@@ -81,26 +81,35 @@ class ETLPipeline:
     def calculate_daily_changes(self, data_pays):
         """Calcule les changements quotidiens"""
         data_pays = data_pays.sort_values('Date')
-        data_pays['nouveaux_cas'] = data_pays['Confirmed'].diff().fillna(0)
+        data_pays['nouveaux_cas'] = data_pays['Confirmed'].diff().fillna(0) 
         data_pays['nouveaux_deces'] = data_pays['Deaths'].diff().fillna(0)
         return data_pays
+    
 
     def prepare_pays_data(self, covid_data, mpox_data):
-        """Prépare les données des pays"""
-        pays_covid = set(covid_data['Country/Region'].unique())
-        pays_mpox = set(mpox_data['location'].unique())
-        
-        # Combine tous les pays uniques
-        tous_pays = pays_covid.union(pays_mpox)
-        
+        """Prépare les données des pays avec les informations des CSV"""
         pays_data = []
-        for pays in tous_pays:
-            pays_data.append({
+
+        # Traitement des données COVID
+        for pays in covid_data['Country/Region'].unique():
+            pays_info = {
                 'nom_pays': pays,
-                'code_iso': None,  # À remplir si disponible
-                'region_oms': None  # À remplir si disponible
-            })
-        
+                'code_iso': None,  # COVID n'a pas de code ISO
+                'region_oms': covid_data[covid_data['Country/Region'] == pays]['WHO Region'].iloc[0]
+            }
+            pays_data.append(pays_info)
+
+        # Traitement des données MPOX
+        for pays in mpox_data['location'].unique():
+            # Vérifier si le pays n'est pas déjà traité
+            if not any(p['nom_pays'] == pays for p in pays_data):
+                pays_info = {
+                    'nom_pays': pays,
+                    'code_iso': mpox_data[mpox_data['location'] == pays]['iso_code'].iloc[0],
+                    'region_oms': None  # MPOX n'a pas de région OMS
+                }
+                pays_data.append(pays_info)
+
         return pays_data
     
 
@@ -185,12 +194,14 @@ class ETLPipeline:
             cleaned_data = self.cleaner.transform(covid_data, {
                 'country_column': 'Country/Region',
                 'date_column': 'Date',
+                'who_region_column': 'WHO Region',
                 'numeric_columns': ['Confirmed', 'Deaths', 'Recovered', 'Active']
             })
 
             aggregated_data = self.aggregator.transform(cleaned_data, {
                 'date_column': 'Date',
                 'country_column': 'Country/Region',
+                'who_region_column': 'WHO Region',
                 'metrics': ['Confirmed', 'Deaths', 'Recovered', 'Active'],
                 'aggregate_by_country': True
             })
@@ -213,12 +224,14 @@ class ETLPipeline:
             cleaned_data = self.cleaner.transform(mpox_data, {
                 'country_column': 'location',
                 'date_column': 'date',
+                'iso_code_column': 'iso_code',
                 'numeric_columns': ['total_cases', 'total_deaths', 'new_cases', 'new_deaths']
             })
 
             aggregated_data = self.aggregator.transform(cleaned_data, {
                 'date_column': 'date',
                 'country_column': 'location',
+                'iso_code_column': 'iso_code',
                 'metrics': ['total_cases', 'total_deaths', 'new_cases', 'new_deaths'],
                 'aggregate_by_country': True
             })
