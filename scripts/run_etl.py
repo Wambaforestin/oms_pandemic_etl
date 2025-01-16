@@ -138,7 +138,7 @@ class ETLPipeline:
             if pays_id:
                 epidemie_data.append({
                     'id_pays': pays_id,
-                    'nom_pays': pays,  # Ajout du nom du pays
+                    'nom_pays': pays,  # Ajout du nom du pays 
                     'id_maladie': 2,
                     'date_premier_cas': data_pays['date'].min(),
                     'date_fin': None,
