@@ -41,7 +41,7 @@ class DatabaseManager:
         try:
             session = self.get_session()
             result = session.execute(query, params) if params else session.execute(query)
-            session.commit()
+            session.commit() # Valide les changements dans la base de données
             return result
         except SQLAlchemyError as e:
             if session:
@@ -50,6 +50,6 @@ class DatabaseManager:
             raise
         finally:
             if session:
-                session.close()
+                session.close() # Ferme la session
 
 db_manager = DatabaseManager()
